@@ -2,40 +2,54 @@
 <html>
   <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="chrome=1">
     <title>Pubsubwhitewhiteshoes by getsetbro</title>
-
-    <link rel="stylesheet" href="stylesheets/styles.css">
-    <link rel="stylesheet" href="stylesheets/pygment_trac.css">
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
     <!--[if lt IE 9]>
     <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
     <![endif]-->
   </head>
   <body>
-    <div class="wrapper">
-      <header>
-        <h1>Pubsubwhitewhiteshoes</h1>
-        <p></p>
+    <form id="flickrSearch">
+    <input type="text" name="tag" id="query"/>
+    <input type="submit" name="submit" value="submit"/>
+    </form>
+    <div id="lastQuery"></div>
+    <div id="searchResults"></div>
+    <!-- <script src="//code.jquery.com/jquery-1.11.1.min.js"></script> -->
+    <script src="//code.jquery.com/jquery-2.1.1.min.js"></script>
+    <script src="pubsub.js"></script>
+    <script>
+      (function($) {
+       
+          $('#flickrSearch').submit(function(e){ 
+              e.preventDefault();
+              var tags = $(this).find('#query').val();
+              if(!tags){return;}
+              $.publish('/search/tags', [ $.trim(tags) ]);
+          });
 
-        <p class="view"><a href="https://github.com/getsetbro/pubsubwhitewhiteshoes">View the Project on GitHub <small>getsetbro/pubsubwhitewhiteshoes</small></a></p>
+          $.subscribe('/search/tags', function(tags){
+              $.getJSON('http://api.flickr.com/services/feeds/photos_public.gne?jsoncallback=?',{ tags: tags, tagmode: 'any', format: 'json'},
+              function(data){
+                  if(!data.items.length){
+                    return;
+                  }
+                  $.publish('/search/resultSet', [ data ]);
+              });
+          });
 
+          $.subscribe('/search/tags', function(tags){
+              $('#searchResults').html('<p>Searched for:<strong>' + tags + '</strong></p>');
+          });
 
-        <ul>
-          <li><a href="https://github.com/getsetbro/pubsubwhitewhiteshoes/zipball/master">Download <strong>ZIP File</strong></a></li>
-          <li><a href="https://github.com/getsetbro/pubsubwhitewhiteshoes/tarball/master">Download <strong>TAR Ball</strong></a></li>
-          <li><a href="https://github.com/getsetbro/pubsubwhitewhiteshoes">View On <strong>GitHub</strong></a></li>
-        </ul>
-      </header>
-      <section>
-        <p>pubsub very very first</p>
-      </section>
-      <footer>
-        <p>This project is maintained by <a href="https://github.com/getsetbro">getsetbro</a></p>
-        <p><small>Hosted on GitHub Pages &mdash; Theme by <a href="https://github.com/orderedlist">orderedlist</a></small></p>
-      </footer>
-    </div>
-    <script src="javascripts/scale.fix.js"></script>
-    
+          $.subscribe('/search/resultSet', function(results){
+              var holder = $('#searchResults');
+              var mdm = $.map(results.items, function(v,k){
+                return v.media.m;
+              });
+              holder.html('<img src="' + mdm.join('"/><img src="') + '"/>');
+          });
+      })(jQuery);
+    </script>
   </body>
 </html>
